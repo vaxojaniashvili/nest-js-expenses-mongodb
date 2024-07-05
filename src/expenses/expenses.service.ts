@@ -8,50 +8,44 @@ import { Expense } from './entities/expense.entity';
 @Injectable()
 export class ExpensesService {
   constructor(@InjectModel('vaxo') private expensesModule: Model<Expense>) {}
-  private readonly data = [];
-
-  async create(createExpenseDto: CreateExpenseDto): Promise<Expense> {
-    try {
-      const expense = await this.expensesModule.create(createExpenseDto);
-      return expense;
-    } catch (error) {
-      throw new HttpException(
-        'Failed to create expense',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+  async create(createExpenseDto: CreateExpenseDto) {
+    const expense = await this.expensesModule.create(createExpenseDto);
+    const saveExpense = expense.save();
+    if (!saveExpense) {
+      throw new HttpException('Error', HttpStatus.BAD_REQUEST);
     }
+    return saveExpense;
   }
 
-  async findAll(): Promise<Expense[]> {
+  async findAll() {
     return this.expensesModule.find().exec();
   }
 
-  async findOne(id: number): Promise<Expense> {
-    const expense = await this.expensesModule.findById(id).exec();
-    if (!expense) {
-      throw new HttpException('Expense not found', HttpStatus.NOT_FOUND);
+  async findOne(id: string) {
+    const findExpenseById = await this.expensesModule.findById(id).exec();
+    if (!findExpenseById) {
+      throw new HttpException('Error', HttpStatus.BAD_REQUEST);
     }
-    return expense;
+    return findExpenseById;
   }
 
-  async update(
-    id: number,
-    updateExpenseDto: UpdateExpenseDto,
-  ): Promise<Expense> {
-    const updatedExpense = await this.expensesModule
-      .findByIdAndUpdate(id, updateExpenseDto, { new: true })
+  async update(id: number, updateExpenseDto: UpdateExpenseDto) {
+    const updateExpense = await this.expensesModule
+      .findOneAndUpdate({ id: id })
       .exec();
-    if (!updatedExpense) {
-      throw new HttpException('Expense not found', HttpStatus.NOT_FOUND);
+    if (!updateExpense) {
+      throw new HttpException('Error', HttpStatus.BAD_REQUEST);
     }
-    return updatedExpense;
+    return updateExpense;
   }
 
-  async remove(id: number): Promise<Expense> {
-    const deletedExpense = await this.expensesModule.findById(id).exec();
-    if (!deletedExpense) {
+  async remove(id: string) {
+    const removeExpense = await this.expensesModule
+      .deleteOne({ _id: id })
+      .exec();
+    if (!removeExpense) {
       throw new HttpException('Expense not found', HttpStatus.NOT_FOUND);
     }
-    return deletedExpense;
+    return 'Successfully deleted expense';
   }
 }
